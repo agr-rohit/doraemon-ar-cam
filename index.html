@@ -3,216 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Doraemon AR Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <title>Doraemon AR Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --dora-blue: #0096D9;
-            --dora-red: #E50012;
-            --glass: rgba(255, 255, 255, 0.15);
+            --glass: rgba(0, 0, 0, 0.6);
+            --border: rgba(255, 255, 255, 0.2);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; font-family: 'Inter', sans-serif; height: 100svh; overflow: hidden; position: fixed; color: white; }
 
-        body { 
-            background: #000; 
-            font-family: 'Inter', sans-serif; 
-            height: 100svh; width: 100vw; 
-            overflow: hidden; 
-            position: fixed;
+        /* The AR Viewport */
+        #viewport { position: relative; width: 100vw; height: 100svh; }
+        canvas { width: 100%; height: 100%; object-fit: cover; touch-action: none; }
+
+        /* Professional UI - Top Toolbar */
+        .top-bar {
+            position: absolute; top: calc(20px + env(safe-area-inset-top));
+            left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 50;
         }
 
-        #app-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+        .glass-btn {
+            background: var(--glass); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 12px;
+            padding: 10px 16px; color: white; font-size: 13px; font-weight: 600;
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
         }
+        .glass-btn:active { transform: scale(0.95); }
 
-        /* The Viewport */
-        canvas { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            touch-action: none; /* Critical for custom gestures */
+        /* Professional UI - Bottom Capture */
+        .bottom-bar {
+            position: absolute; bottom: calc(40px + env(safe-area-inset-bottom));
+            width: 100%; display: flex; justify-content: center; align-items: center;
+            z-index: 50; pointer-events: none;
         }
-
-        /* Professional UI Overlay */
-        .ui-layer {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: calc(20px + env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom)) 20px;
+        .shutter {
+            pointer-events: auto; width: 75px; height: 75px; background: white;
+            border-radius: 50%; border: 6px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
         }
+        .shutter-inner { width: 55px; height: 55px; border: 2px solid black; border-radius: 50%; }
 
-        .header {
-            pointer-events: auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo-badge {
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            padding: 8px 16px;
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            font-weight: 700;
-            letter-spacing: 1px;
-            font-size: 14px;
-        }
-
-        .controls-footer {
-            pointer-events: auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 30px;
-        }
-
-        /* Shutter Button */
-        .shutter-btn {
-            width: 80px;
-            height: 80px;
-            background: white;
-            border-radius: 50%;
-            border: 6px solid rgba(255,255,255,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .shutter-btn:active { transform: scale(0.9); }
-        .shutter-inner { width: 60px; height: 60px; border: 2px solid #000; border-radius: 50%; }
-
-        /* Preview System */
-        #flash {
-            position: fixed; inset: 0; background: white;
-            opacity: 0; pointer-events: none; z-index: 100;
-        }
-
-        #preview-modal {
+        /* Start / Landing Screen */
+        #overlay-screen {
             position: fixed; inset: 0; background: #000;
-            display: none; flex-direction: column; 
-            z-index: 200; padding: 40px 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; text-align: center; padding: 20px;
         }
-        #preview-modal img { 
-            width: 100%; height: 80%; object-fit: contain; 
-            border-radius: 20px;
-        }
-        
-        .modal-btns {
-            display: flex; gap: 20px; margin-top: 20px;
-            justify-content: center;
+        .main-btn {
+            background: var(--dora-blue); color: white; border: none;
+            padding: 18px 40px; border-radius: 50px; font-size: 18px;
+            font-weight: 700; cursor: pointer; box-shadow: 0 10px 20px rgba(0, 150, 217, 0.4);
         }
 
-        .primary-btn {
-            background: var(--dora-blue); color: white;
-            border: none; padding: 15px 40px; border-radius: 12px;
-            font-weight: 700; cursor: pointer;
+        /* Preview Modal */
+        #preview {
+            position: fixed; inset: 0; background: #000; z-index: 200;
+            display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
         }
+        #preview img { max-width: 100%; max-height: 75%; border-radius: 20px; border: 2px solid white; }
+
+        #flash { position: fixed; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 150; }
     </style>
 </head>
 <body>
 
 <div id="flash"></div>
 
-<div id="app-container">
+<div id="overlay-screen">
+    <h1 style="margin-bottom: 10px;">Doraemon AR Studio</h1>
+    <p style="color: #888; margin-bottom: 30px;">Place Doraemon in your world!</p>
+    <button class="main-btn" onclick="startCamera()">START ENGINE</button>
+</div>
+
+<div id="viewport">
     <canvas id="arCanvas"></canvas>
     
-    <div class="ui-layer">
-        <div class="header">
-            <div class="logo-badge">DORAEMON AR PRO</div>
-        </div>
+    <div class="top-bar">
+        <div class="glass-btn" onclick="stopCamera()">🛑 STOP</div>
+        <div class="glass-btn" onclick="toggleCamera()">🔄 FLIP</div>
+    </div>
 
-        <div class="controls-footer">
-            <div class="shutter-btn" id="captureBtn">
-                <div class="shutter-inner"></div>
-            </div>
+    <div class="bottom-bar">
+        <div class="shutter" onclick="takePhoto()">
+            <div class="shutter-inner"></div>
         </div>
     </div>
 </div>
 
-<div id="preview-modal">
-    <img id="savedImage" src="" alt="Captured">
-    <div class="modal-btns">
-        <button class="primary-btn" onclick="closePreview()">RETAKE</button>
-        <p style="color: #666; font-size: 12px; text-align: center; margin-top: 10px;">Long-press image to save to gallery</p>
-    </div>
+<div id="preview">
+    <img id="captureImg" src="">
+    <button class="main-btn" style="margin-top: 25px;" onclick="retake()">RETAKE</button>
 </div>
 
-<video id="video" autoplay playsinline style="display:none;"></video>
+<video id="video" autoplay muted playsinline style="display:none;"></video>
 
 <script>
 const canvas = document.getElementById('arCanvas');
 const ctx = canvas.getContext('2d');
 const video = document.getElementById('video');
-const flash = document.getElementById('flash');
 const doraemonImg = new Image();
 doraemonImg.src = 'doraemon.png';
 
-// State Management
-let dX = 0, dY = 0, dWidth = 200;
-let isDragging = false;
-let startX, startY;
-let initialPinchDist = null;
-let initialWidth = null;
+let stream = null;
+let currentFacingMode = "environment";
+let dX = 100, dY = 100, dWidth = 180;
+let isDragging = false, startX, startY, initialPinchDist = null, initialWidth = null;
 
-// Initialization
-async function init() {
+// --- 1. Camera Logic ---
+async function startCamera() {
+    if (stream) stopCamera(); // Clean up if running
+
+    const constraints = {
+        video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+    };
+
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, 
-            audio: false 
-        });
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
-        video.onloadedmetadata = () => {
+        await video.play();
+
+        document.getElementById('overlay-screen').style.display = 'none';
+
+        video.onloadeddata = () => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            // Center Doraemon initially
             dX = canvas.width / 2 - dWidth / 2;
             dY = canvas.height / 2 - dWidth / 2;
-            render();
+            renderLoop();
         };
-    } catch (e) {
-        alert("Camera Access Required for AR");
+    } catch (err) {
+        alert("Camera Error: " + err.message);
     }
 }
 
-function render() {
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    ctx.drawImage(doraemonImg, dX, dY, dWidth, dWidth);
-    requestAnimationFrame(render);
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    document.getElementById('overlay-screen').style.display = 'flex';
 }
 
-// Advanced Gesture Handling
-canvas.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        // Convert screen touch to canvas coordinates
-        const touchX = (touch.clientX - rect.left) * (canvas.width / rect.width);
-        const touchY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+function toggleCamera() {
+    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+    startCamera(); // Restart with new mode
+}
 
-        // Check if we touched Doraemon
-        if (touchX >= dX && touchX <= dX + dWidth && touchY >= dY && touchY <= dY + dWidth) {
+// --- 2. Render Engine ---
+function renderLoop() {
+    if (!stream) return;
+    
+    // Smooth rendering of video + character
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(doraemonImg, dX, dY, dWidth, dWidth);
+    }
+    requestAnimationFrame(renderLoop);
+}
+
+// --- 3. Gesture Engine (Drag & Zoom) ---
+canvas.addEventListener('touchstart', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const sX = canvas.width / rect.width;
+    const sY = canvas.height / rect.height;
+
+    if (e.touches.length === 1) {
+        const tX = (e.touches[0].clientX - rect.left) * sX;
+        const tY = (e.touches[0].clientY - rect.top) * sY;
+        if (tX > dX && tX < dX + dWidth && tY > dY && tY < dY + dWidth) {
             isDragging = true;
-            startX = touchX - dX;
-            startY = touchY - dY;
+            startX = tX - dX; startY = tY - dY;
         }
     } else if (e.touches.length === 2) {
-        isDragging = false;
-        initialPinchDist = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-        );
+        initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         initialWidth = dWidth;
     }
 }, { passive: false });
@@ -220,53 +189,36 @@ canvas.addEventListener('touchstart', (e) => {
 canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
+    const sX = canvas.width / rect.width;
+    const sY = canvas.height / rect.height;
 
     if (e.touches.length === 1 && isDragging) {
-        const touch = e.touches[0];
-        dX = ((touch.clientX - rect.left) * (canvas.width / rect.width)) - startX;
-        dY = ((touch.clientY - rect.top) * (canvas.height / rect.height)) - startY;
-    } 
-    else if (e.touches.length === 2 && initialPinchDist) {
-        const currentDist = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-        );
-        
-        // Scaling Logic
-        const scale = currentDist / initialPinchDist;
-        const newWidth = initialWidth * scale;
-        
-        if (newWidth > 50 && newWidth < canvas.width) {
-            // Anchor scaling to center
-            dX -= (newWidth - dWidth) / 2;
-            dY -= (newWidth - dWidth) / 2;
-            dWidth = newWidth;
+        dX = (e.touches[0].clientX - rect.left) * sX - startX;
+        dY = (e.touches[0].clientY - rect.top) * sY - startY;
+    } else if (e.touches.length === 2 && initialPinchDist) {
+        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const newW = initialWidth * (dist / initialPinchDist);
+        if (newW > 50 && newW < 900) {
+            dX -= (newW - dWidth) / 2; dY -= (newW - dWidth) / 2; dWidth = newW;
         }
     }
 }, { passive: false });
 
-canvas.addEventListener('touchend', () => {
-    isDragging = false;
-    initialPinchDist = null;
-});
+canvas.addEventListener('touchend', () => { isDragging = false; initialPinchDist = null; });
 
-// Capture and Visual Effects
-document.getElementById('captureBtn').onclick = () => {
-    // Flash effect
+// --- 4. Photo Logic ---
+function takePhoto() {
+    const flash = document.getElementById('flash');
     flash.style.opacity = '1';
-    setTimeout(() => flash.style.opacity = '0', 100);
+    setTimeout(() => flash.style.opacity = '0', 150);
 
-    // Save
-    const dataURL = canvas.toDataURL('image/png');
-    document.getElementById('savedImage').src = dataURL;
-    document.getElementById('preview-modal').style.display = 'flex';
-};
-
-function closePreview() {
-    document.getElementById('preview-modal').style.display = 'none';
+    document.getElementById('captureImg').src = canvas.toDataURL('image/png');
+    document.getElementById('preview').style.display = 'flex';
 }
 
-init();
+function retake() {
+    document.getElementById('preview').style.display = 'none';
+}
 </script>
 </body>
 </html>
